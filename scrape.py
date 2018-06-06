@@ -1,4 +1,5 @@
 import argparse
+import time
 import os
 
 import praw
@@ -25,7 +26,7 @@ def main():
         os.mkdir('output')
 
     with open('output/{}.txt'.format(parse.subreddit.lower()), 'w') as f:
-        f.write('')
+        f.write('Post titles of subreddit /r/{} as of {}.\n'.format(parse.subreddit, time.strftime('%c')))
 
     while True:
         try:
