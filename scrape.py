@@ -19,6 +19,8 @@ def parser():
 def main():
     parse = parser()
 
+    print("Now scraping /r/{}...".format(parse.subreddit))
+
     r = requests.get('https://api.pushshift.io/reddit/search/submission/?subreddit={}'.format(parse.subreddit)).json()
 
     fetch_number = 1
