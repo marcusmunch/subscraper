@@ -1,9 +1,8 @@
 import argparse
-import time
 import os
+import time
 
 import requests
-import praw
 
 
 def parser():
