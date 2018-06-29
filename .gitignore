@@ -111,3 +111,4 @@ praw.ini
 
 # User generated output
 output/
+.Rproj.user
