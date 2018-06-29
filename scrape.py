@@ -2,6 +2,7 @@ import argparse
 import time
 import os
 
+import requests
 import praw
 
 
@@ -17,27 +18,47 @@ def parser():
 def main():
     parse = parser()
 
-    reddit = praw.Reddit(parse.user, user_agent="Subreddit Scraper")
-    print("Logged in as {}. Now scraping /r/{}".format(reddit.user.me(), parse.subreddit))
+    r = requests.get('https://api.pushshift.io/reddit/search/submission/?subreddit={}'.format(parse.subreddit)).json()
 
-    post_generator = reddit.subreddit(parse.subreddit).new(limit=None)
+    fetch_number = 0
 
     if not os.path.exists('./output/'):
         os.mkdir('output')
 
     with open('output/{}.txt'.format(parse.subreddit.lower()), 'w') as f:
-        f.write('Post titles of subreddit /r/{} as of {}.\n'.format(parse.subreddit, time.strftime('%c')))
+        f.write('Post titles of subreddit /r/{} as of {}:\n'.format(parse.subreddit, time.strftime('%c')))
 
     while True:
         try:
-            post = post_generator.next()
+            for i in r['data']:
+                to_write = i['title'].encode('utf-8')
+                print("{:04d}: {:40}".format(fetch_number, to_write))
 
-            with open('output/{}.txt'.format(parse.subreddit.lower()), 'a') as f:
-                print(post.title.encode('utf-8'))
-                f.write(post.title.encode('utf-8') + '\n')
+                with open('output/{}.txt'.format(parse.subreddit.lower()), 'a') as f:
+                    f.write(to_write + '\n')
 
-        except StopIteration:
+                fetch_number += 1
+
+            time.sleep(0.2)
+
+            r = requests.get(
+                'https://api.pushshift.io/reddit/search/submission/?subreddit={}&before={}'.format(parse.subreddit, r['data'][-1]['created_utc'])).json()
+
+        except IndexError:
             break
+
+    with open('output/{}.txt'.format(parse.subreddit.lower()), 'r') as f:
+        my_list = list(l[:-1] for l in f.readlines()[1:])
+
+    from collections import Counter
+    counted = dict(Counter(my_list))
+
+    with open('output/{}_sorted.txt'.format(parse.subreddit.lower()), 'w') as f:
+        f.write('name\tcounts\n')
+
+    for i in counted:
+        with open('output/{}_sorted.txt'.format(parse.subreddit.lower()), 'a') as f:
+            f.write('{}\t{}\n'.format(i, counted[i]))
 
 
 if __name__ == "__main__":
