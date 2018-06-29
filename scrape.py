@@ -1,5 +1,7 @@
 import argparse
 import os
+import re
+import sys
 import time
 
 import requests
@@ -19,26 +21,36 @@ def main():
 
     r = requests.get('https://api.pushshift.io/reddit/search/submission/?subreddit={}'.format(parse.subreddit)).json()
 
-    fetch_number = 0
+    fetch_number = 1
 
     if not os.path.exists('./output/'):
         os.mkdir('output')
 
     with open('output/{}.txt'.format(parse.subreddit.lower()), 'w') as f:
-        f.write('Post titles of subreddit /r/{} as of {}:\n'.format(parse.subreddit, time.strftime('%c')))
+        f.write('\t'.join(['title', 'author', 'score', 'created_utc', 'over_18']) + '\n')
 
     while True:
         try:
             for i in r['data']:
-                to_write = i['title'].encode('utf-8')
-                print("{:04d}: {:40}".format(fetch_number, to_write))
+                title = i['title'].encode('utf8')
+                author = str(i['author'])
+                score = str(i['score'])
+                created = str(i['created_utc'])
+                over_18 = str(i['over_18'])
+
+                title = re.sub(r'\(.*\)|\[.*\]', '', title).strip()
+
+                sys.stdout.write("{:04d}: {:40.40}\r".format(fetch_number, title))
+                sys.stdout.flush()
 
                 with open('output/{}.txt'.format(parse.subreddit.lower()), 'a') as f:
+                    to_write = '\t'.join([title, author, score, created, over_18])
+
                     f.write(to_write + '\n')
 
                 fetch_number += 1
 
-            time.sleep(0.2)
+            time.sleep(0.25)
 
             r = requests.get(
                 'https://api.pushshift.io/reddit/search/submission/?subreddit={}&before={}'.format(parse.subreddit, r['data'][-1]['created_utc'])).json()
