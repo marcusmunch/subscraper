@@ -1,25 +1,55 @@
 library(tidyverse)
 library(scales)
 
-subs = c("models", "goddesses", "prettygirls", "catsstandingup")
-limits = c(10, 25, 35, 50)
+limits = c(10, 15, 25, 35)
 
-for (sub in subs){
+if (!file.exists("output/png")){
+  cat('Created graphics output folder')
+  dir.create("output/png")
+}
+
+for (sub in gsub(".txt$", "", list.files("output", ".txt"))){
+  cat(paste0("Analyzing subreddit /r/", sub))
+  contents <- read_tsv(sprintf("output/%s.txt", sub))
+  nrows <- nrow(contents)
   
-for (limit in limits){
-count_list <- read_tsv(sprintf("output/%s_sorted.txt", sub)) %>%
-  arrange(desc(counts))
+  for (limit in limits){
 
-ggplot(head(count_list, limit), aes(x = reorder(name, -counts), y=counts, fill=counts)) +
-  geom_bar(stat = "identity") +
-  geom_text(aes(label=counts), vjust=-0.25, size = 2.5) +
+contents %>%
+  group_by(author) %>%
+  filter(author != "[deleted]") %>%
+  summarise(totalscore = sum(score), n = n(), avgscore = mean(score)) %>%
+  arrange(desc(totalscore)) %>%
+  head(limit) %>%
+
+ggplot(aes(x=reorder(author, -totalscore), y = totalscore, fill=totalscore)) +
+  geom_bar(stat="identity") +
+  scale_fill_gradientn(colors = c("darkred", "yellow", "darkblue")) +
+  theme_minimal() +
   theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
-  scale_fill_gradientn(limits = c(count_list$counts[1], count_list$counts[limit]),
-                       colors = c("darkred", "yellow", "darkgreen")) +
-  labs(x= "Name",
-       y = "Appearances",
-       title=paste(sprintf("The %s most popular titles in /r/%s (n = %s posts)", limit, sub, sum(count_list$counts, na.rm = T))),
-       caption="Made by /u/MarcusMunch")
+  labs(x = "Name",
+       y = "Total upvotes",
+       title = sprintf("The %s most upvoted posters in /r/%s (n = %s)", limit, sub, nrows))
 
-ggsave(sprintf("output/png/%s_top%s.png", sub, limit))
-}}
+ggsave(sprintf("output/png/%s_author_top%s.png", sub, limit), height = 5, width = 8)
+
+contents %>%
+  group_by(title) %>%
+  filter(n() > 2) %>%
+  summarise(totalscore = sum(score), n = n(), avgscore = mean(score)) %>%
+  arrange(desc(totalscore)) %>%
+  head(limit) %>%
+
+ggplot(aes(x=reorder(title, -totalscore), y = totalscore, fill=totalscore)) +
+  geom_bar(stat="identity") +
+  scale_fill_gradientn(colors = c("darkred", "yellow", "darkblue")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+  labs(x = "Name",
+       y = "Total upvotes",
+       title = sprintf("The %s most upvoted titles in /r/%s (n = %s)", limit, sub, nrows))
+
+ggsave(sprintf("output/png/%s_title_top%s.png", sub, limit), height = 5, width = 8)
+
+  }
+}
