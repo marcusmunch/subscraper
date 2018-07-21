@@ -16,6 +16,7 @@ def parser():
 
     return args
 
+
 def main():
     parse = parser()
 
@@ -55,23 +56,12 @@ def main():
             time.sleep(0.25)
 
             r = requests.get(
-                'https://api.pushshift.io/reddit/search/submission/?subreddit={}&before={}'.format(parse.subreddit, r['data'][-1]['created_utc'])).json()
+                'https://api.pushshift.io/reddit/search/submission/?subreddit={}&before={}'.format(
+                    parse.subreddit, r['data'][-1]['created_utc'])).json()
 
         except IndexError:
             break
-
-    with open('output/{}.txt'.format(parse.subreddit.lower()), 'r') as f:
-        my_list = list(l[:-1] for l in f.readlines()[1:])
-
-    from collections import Counter
-    counted = dict(Counter(my_list))
-
-    with open('output/{}_sorted.txt'.format(parse.subreddit.lower()), 'w') as f:
-        f.write('name\tcounts\n')
-
-    for i in counted:
-        with open('output/{}_sorted.txt'.format(parse.subreddit.lower()), 'a') as f:
-            f.write('{}\t{}\n'.format(i, counted[i]))
+    print("\nDone!")
 
 
 if __name__ == "__main__":
